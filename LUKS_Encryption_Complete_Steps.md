@@ -171,37 +171,4 @@ root@stack-VirtualBox:~#
 
 ---
 
-## Summary of Key Values Used:
-
-| Placeholder | Actual Value | Purpose |
-|-------------|--------------|---------|
-| Package 1 | cryptsetup | Encryption tool |
-| Package 2 | parted | Partitioning tool |
-| Disk | /dev/sdb | Secondary virtual disk |
-| Partition Number | /dev/sdb1 | First partition on sdb |
-| Mapper Name | crypt | Device mapper name |
-| Mount Point | /mnt/encrypted_CND | Where to mount encrypted partition |
-| Key Directory | /etc/luks-keys | Directory for LUKS keys |
-| Key File | luks-key | Name of the key file |
-| Slot Number | 0 | LUKS key slot (0-7 available) |
-
----
-
-## Verification Commands:
-
-```bash
-# Check if partition is mounted
-lsblk
-
-# Check LUKS slots
-cryptsetup luksDump /dev/sdb1
-
-# Check if key file exists
-ls -la /etc/luks-keys/
-
-# Test accessing the encrypted data
-cd /mnt/encrypted_CND
-touch test.txt
-ls -la
-```
 
