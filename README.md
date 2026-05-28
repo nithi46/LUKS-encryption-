@@ -1,165 +1,209 @@
-# Complete LUKS Encryption Setup - Step by Step
+# LUKS Encryption Setup Guide
 
-## Step 1: Install the cryptsetup tool
+> A comprehensive step-by-step guide to perform LUKS (Linux Unified Key Setup) encryption on Linux systems for securing sensitive data.
+
+![Linux](https://img.shields.io/badge/Linux-FCC624?style=for-the-badge&logo=linux&logoColor=black)
+![Encryption](https://img.shields.io/badge/Encryption-LUKS-blue?style=for-the-badge)
+![Course](https://img.shields.io/badge/Course-Advanced%20Linux%20Administration-green?style=for-the-badge)
+
+## 📋 Table of Contents
+
+- [Overview](#overview)
+- [Prerequisites](#prerequisites)
+- [Installation](#installation)
+- [Step-by-Step Guide](#step-by-step-guide)
+- [Verification](#verification)
+- [Reference Table](#reference-table)
+- [Troubleshooting](#troubleshooting)
+
+---
+
+## Overview
+
+This guide demonstrates how to implement LUKS encryption on a Linux system to protect sensitive data stored on disk partitions. It covers the complete process from installing necessary tools to adding encryption keys and mounting encrypted volumes.
+
+**What You'll Learn:**
+- Installing cryptsetup and parted packages
+- Creating and encrypting disk partitions
+- Mapping encrypted volumes
+- Mounting encrypted filesystems
+- Managing LUKS encryption keys
+
+---
+
+## Prerequisites
+
+- Root or sudo access
+- A Linux system (Ubuntu/Debian based)
+- A secondary disk or partition to encrypt (e.g., `/dev/sdb`)
+- Basic command-line knowledge
+
+---
+
+## Installation
+
+### Step 1: Install Required Packages
 
 ```bash
 apt-get install cryptsetup parted
 ```
 
-**Explanation:**
-- `cryptsetup` - The main encryption tool
-- `parted` - For disk partitioning
+**Packages:**
+- **cryptsetup** - Main LUKS encryption tool
+- **parted** - Disk partitioning utility
 
 ---
 
-## Step 2: Check the partitions available
+## Step-by-Step Guide
+
+### Step 2: Check Available Partitions
+
+Verify the available disks and partitions on your system.
 
 ```bash
-# Check the virtual disk status
+# Display block devices
 lsblk
 
 # Setup new disk table on /dev/sdb
 parted /dev/sdb -i mksdos primary
 
-# Create new partition on /dev/sdb
+# Create a new partition
 parted /dev/sdb -s mkpart primary 1 -1
 
-# List all partitions
+# List partitions
 parted /dev/sdb -l
 ```
 
-**Expected Result:** You should see `/dev/sdb1` as the new partition created
+**Expected Result:** New partition `/dev/sdb1` should be created
 
 ---
 
-## Step 3: Encrypt the partition
+### Step 3: Encrypt the Partition
+
+Create an encryption layer on the partition using LUKS format.
 
 ```bash
-# Format the partition with LUKS encryption
-# This will prompt you to enter a passphrase
+# Format partition with LUKS encryption
 cryptsetup -y -v luksFormat /dev/sdb1
 ```
 
-**What to do:**
-- When prompted, enter your passphrase (e.g., `MySecurePassword123`)
+**Instructions:**
+- ⚠️ Enter a strong passphrase when prompted
 - Confirm the passphrase again
-- Type `YES` (in uppercase) to confirm encryption
+- Type `YES` (uppercase) to confirm encryption
 
 ---
 
-## Step 4: Map the partition
+### Step 4: Map the Partition
+
+Open the encrypted partition and create a device mapper entry.
 
 ```bash
-# Open the encrypted partition and create a device mapper
-# The mapper name will be: /dev/mapper/crypt
+# Open encrypted partition and create mapper
 cryptsetup -v luksOpen /dev/sdb1 crypt
 ```
 
-**Explanation:**
-- `/dev/sdb1` - The encrypted partition
-- `crypt` - The name of the decrypted device mapper (you can use any name)
+**Parameters:**
+- `/dev/sdb1` - Encrypted partition
+- `crypt` - Name of the device mapper
 
 ---
 
-## Step 5: Format the partition
+### Step 5: Format the Partition
+
+Create a filesystem and prepare mount directory.
 
 ```bash
-# Create a filesystem on the decrypted device
+# Create ext4 filesystem on encrypted device
 mkfs.ext4 /dev/mapper/crypt
 
-# Create a directory where we will mount the encrypted partition
+# Create mount directory
 mkdir -p /mnt/encrypted_CND
 ```
 
-**Explanation:**
-- `mkfs.ext4` - Creates an ext4 filesystem
-- `/dev/mapper/crypt` - The decrypted mapped device
-- `/mnt/encrypted_CND` - Directory name (you can change "encrypted_CND" to any name)
-
 ---
 
-## Step 6: Mount the partition
+### Step 6: Mount the Partition
+
+Mount the encrypted device to your system.
 
 ```bash
-# Mount the encrypted device to the directory
+# Mount encrypted device
 mount -v /dev/mapper/crypt /mnt/encrypted_CND
 
-# Remount with additional options if needed
+# Remount with options if needed
 mount -v -o remount /mnt/encrypted_CND
 ```
 
-**Verification - Check if mounted:**
+**Verify Mount:**
 ```bash
 lsblk
 # or
 df -h
 ```
 
-**Expected Output (like Image 2):**
+**Expected Output:**
 ```
 sda            8:0    0  696G  0 disk
 ├─sda1         8:1    0  686G  0 part /
 ├─sdb          8:16   0  199M  0 disk
 ├─sdc1         8:33   0  199M  0 crypt /mnt/encrypted_CND
 └─sdd1         8:49   0  195M  0 crypt
-root@stack-VirtualBox:~#
 ```
 
 ---
 
-## Step 7: Retrieve LUKS details
+### Step 7: Retrieve LUKS Details
+
+Display detailed information about your LUKS encryption.
 
 ```bash
-# Dump all LUKS information about the encrypted partition
+# Dump LUKS encryption details
 cryptsetup luksDump /dev/sdb1
 ```
 
-**This shows:**
-- Encryption method
-- Key slots
-- Passphrase information
-- UUID of the partition
+**Displays:**
+- Encryption algorithm
+- Key slots information
+- UUID and other metadata
 
 ---
 
-## Step 8: Add a new LUKS key
+### Step 8: Add a New LUKS Key
 
-### Step 8a: Create a directory to store the key
+Securely store and add a LUKS encryption key.
+
+#### Create Key Directory
 
 ```bash
-# Create the directory
+# Create secure directory for keys
 mkdir /etc/luks-keys
 
-# Set permissions (only root can access)
+# Set restrictive permissions (root only)
 chmod 700 /etc/luks-keys
 ```
 
-### Step 8b: Generate a random key file
+#### Generate Random Key
 
 ```bash
-# Create a random key file (32 bytes = 256 bits)
+# Generate 32-byte random key
 dd if=/dev/random of=/etc/luks-keys/luks-key bs=32 count=1
 ```
 
-**Explanation:**
-- `if=/dev/random` - Read from random device
-- `of=/etc/luks-keys/luks-key` - Output file path
-- `bs=32` - Block size of 32 bytes
-- `count=1` - Generate only 1 block
+**Parameters:**
+- `if=/dev/random` - Random data source
+- `of=/etc/luks-keys/luks-key` - Key file path
+- `bs=32` - Block size (32 bytes = 256 bits)
+- `count=1` - Generate 1 block
 
-### Step 8c: Add the key to LUKS
+#### Add Key to LUKS
 
 ```bash
-# Add the key file to LUKS slot 1
+# Add key file to LUKS slot 0
 cryptsetup luksAddKey /dev/sdb1 /etc/luks-keys/luks-key -S 0
 ```
 
-**Explanation:**
-- `/dev/sdb1` - The encrypted partition
-- `/etc/luks-keys/luks-key` - The key file you created
-- `-S 0` - Add to slot 0 (slots are numbered 0-7)
-
-**Expected Output (like Image 3):**
+**Expected Output:**
 ```
 root@stack-VirtualBox:~# mkdir /etc/luks-keys
 root@stack-VirtualBox:~# dd if=/dev/random of=/etc/luks-keys/luks-key bs=32 count=1
@@ -171,36 +215,153 @@ root@stack-VirtualBox:~#
 
 ---
 
-## Summary of Key Values Used:
+## Verification
 
-| Placeholder | Actual Value | Purpose |
-|-------------|--------------|---------|
-| Package 1 | cryptsetup | Encryption tool |
-| Package 2 | parted | Partitioning tool |
-| Disk | /dev/sdb | Secondary virtual disk |
-| Partition Number | /dev/sdb1 | First partition on sdb |
-| Mapper Name | crypt | Device mapper name |
-| Mount Point | /mnt/encrypted_CND | Where to mount encrypted partition |
-| Key Directory | /etc/luks-keys | Directory for LUKS keys |
-| Key File | luks-key | Name of the key file |
-| Slot Number | 0 | LUKS key slot (0-7 available) |
+### Check Mounted Partitions
+
+```bash
+# Display all block devices and mount points
+lsblk
+
+# Display mounted filesystems with sizes
+df -h
+```
+
+### Check LUKS Slots
+
+```bash
+# View all LUKS key slots
+cryptsetup luksDump /dev/sdb1
+
+# View key slots summary
+cryptsetup luksDump /dev/sdb1 | grep "Slot"
+```
+
+### Verify Key File
+
+```bash
+# Check key directory contents
+ls -la /etc/luks-keys/
+
+# Verify key file size (should be 32 bytes)
+stat /etc/luks-keys/luks-key
+```
+
+### Test Access
+
+```bash
+# Navigate to encrypted mount point
+cd /mnt/encrypted_CND
+
+# Create test file
+touch test.txt
+
+# List contents
+ls -la
+```
 
 ---
 
-## Verification Commands:
+## Reference Table
 
+| Component | Actual Value | Purpose |
+|-----------|--------------|---------|
+| **Package 1** | `cryptsetup` | LUKS encryption tool |
+| **Package 2** | `parted` | Disk partitioning tool |
+| **Disk** | `/dev/sdb` | Secondary virtual disk |
+| **Partition** | `/dev/sdb1` | Encrypted partition |
+| **Mapper Name** | `crypt` | Device mapper identifier |
+| **Mount Point** | `/mnt/encrypted_CND` | Filesystem mount location |
+| **Key Directory** | `/etc/luks-keys` | Secure key storage location |
+| **Key File** | `luks-key` | Generated key filename |
+| **Key Size** | `32 bytes` | 256-bit encryption key |
+| **Slot Number** | `0` | LUKS slot 0 (0-7 available) |
+
+---
+
+## Troubleshooting
+
+### Issue: "Device /dev/sdb1 not found"
+
+**Solution:**
 ```bash
-# Check if partition is mounted
+# Check available devices
 lsblk
 
-# Check LUKS slots
-cryptsetup luksDump /dev/sdb1
-
-# Check if key file exists
-ls -la /etc/luks-keys/
-
-# Test accessing the encrypted data
-cd /mnt/encrypted_CND
-touch test.txt
-ls -la
+# Create partition if missing
+parted /dev/sdb -s mkpart primary 1 -1
 ```
+
+### Issue: "No key available with this passphrase"
+
+**Solution:**
+```bash
+# Try unlocking with key file instead
+cryptsetup luksOpen /dev/sdb1 crypt --key-file=/etc/luks-keys/luks-key
+```
+
+### Issue: "Mount point does not exist"
+
+**Solution:**
+```bash
+# Create mount directory
+mkdir -p /mnt/encrypted_CND
+
+# Then mount again
+mount -v /dev/mapper/crypt /mnt/encrypted_CND
+```
+
+### Issue: "Device mapper already exists"
+
+**Solution:**
+```bash
+# Remove existing mapper
+cryptsetup luksClose crypt
+
+# Then reopen
+cryptsetup luksOpen /dev/sdb1 crypt
+```
+
+---
+
+## Security Best Practices
+
+✅ **DO:**
+- Use strong passphrases (mix of uppercase, lowercase, numbers, special characters)
+- Store key files in secure locations with restricted permissions
+- Regularly backup LUKS headers
+- Use different passphrases for different slots
+- Document your encryption setup
+
+❌ **DON'T:**
+- Share passphrases or key files
+- Use weak or simple passphrases
+- Store keys in world-readable locations
+- Keep unencrypted backups of sensitive data
+- Forget your passphrase (it cannot be recovered)
+
+---
+
+## Additional Resources
+
+- [LUKS Documentation](https://gitlab.com/cryptsetup/cryptsetup)
+- [Linux Disk Encryption Guide](https://wiki.archlinux.org/title/Dm-crypt)
+- [Cryptsetup Manual](https://man7.org/linux/man-pages/man8/cryptsetup.8.html)
+
+---
+
+## License
+
+This guide is provided for educational purposes as part of Advanced Linux System Administration Course - Sprint 4: Hardening Linux Systems.
+
+---
+
+## Author Notes
+
+This is a practical implementation guide for LUKS encryption. Always test in a non-production environment first.
+
+**Last Updated:** 2026
+
+---
+
+**Made with ❤️ for Linux Security**
