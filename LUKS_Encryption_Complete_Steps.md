@@ -159,69 +159,72 @@ cryptsetup luksAddKey /dev/sdb1 /etc/luks-keys/luks-key -S 0
 - `/etc/luks-keys/luks-key` - The key file you created
 - `-S 0` - Add to slot 0 (slots are numbered 0-7)
 
-## Complete Command Reference
-
 ### Quick Copy-Paste Sequence (One at a time)
-# 1. Install packages
-apt-get update
-apt-get install -y cryptsetup parted
 
-# 2. Check partitions
-Lsblk
+sudo apt-get update
 
-# 3. Setup disk and partition
-parted /dev/sdb -s mklabel msdos
-parted /dev/sdb -s mkpart primary 1% 100%
+sudo apt-get install -y cryptsetup parted
 
-# 4. Encrypt partition
-cryptsetup -y -v luksFormat /dev/sdb1
-# When prompted: type YES and enter passphrase
+lsblk
 
-# 5. Map encrypted device
-cryptsetup -v luksOpen /dev/sdb1 crypt
-# When prompted: enter passphrase
+sudo parted /dev/sdb -s mklabel msdos
 
-# 6. Format and create mount point
-mkfs.ext4 /dev/mapper/crypt
-mkdir -p /mnt/encrypted_CND
+sudo parted /dev/sdb -s mkpart primary 1% 100%     # Setup disk and partition
 
-# 7. Mount and configure SELinux
-mount -v /dev/mapper/crypt /mnt/encrypted_CND
-apt-get install -y policycoreutils
+sudo cryptsetup -y -v luksFormat /dev/sdb1    #Encrypt partition
+
+sudo cryptsetup -v luksOpen /dev/sdb1 crypt   # When prompted: enter passphrase
+
+sudo mkfs.ext4 /dev/mapper/crypt    #Format and create mount point
+
+sudo mkdir -p /mnt/encrypted_CND
+
+sudo mount -v /dev/mapper/crypt /mnt/encrypted_CND    # Mount and configure SELinux
+
+sudo apt-get install -y policycoreutils
+
 restorecon -WRF /mnt/encrypted_CND
-mount -v -o remount /mnt/encrypted_CND
 
-# 8. View encryption details
-cryptsetup luksDump /dev/sdb1
+sudo mount -v -o remount /mnt/encrypted_CND
 
-# 9. Create key storage and backup key
-mkdir /etc/luks-keys
-chmod 700 /etc/luks-keys
+sudo cryptsetup luksDump /dev/sdb1    # View encryption details
+
+sudo mkdir /etc/luks-keys    # Create key storage and backup key
+
+sudo chmod 700 /etc/luks-keys
+
 dd if=/dev/random of=/etc/luks-keys/luks-key bs=32 count=1
-cryptsetup luksAddKey /dev/sdb1 /etc/luks-keys/luks-key -S 0
+
+sudo cryptsetup luksAddKey /dev/sdb1 /etc/luks-keys/luks-key -S 0
 
 ---
 ## Verification Checklist
 
-# Verify all components
 ✓ Packages installed
 cryptsetup --version
 parted --version
+
 ✓ Partitions created
-lsblk
+lsblk #OR
 parted /dev/sdb -l
+
 ✓ Device mapped
 dmsetup ls
+
 ✓ Mounted correctly
 mount | grep encrypted_CND
 df -h
+
 ✓ SELinux context
 ls -lZ /mnt/encrypted_CND
+
 ✓ LUKS details
 cryptsetup luksDump /dev/sdb1
+
 ✓ Key file created
 ls -la /etc/luks-keys/
 stat /etc/luks-keys/luks-key
+
 ✓ LUKS slots filled
 cryptsetup luksDump /dev/sdb1 | grep "Key Slot"
 
