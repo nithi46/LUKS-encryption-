@@ -1,0 +1,42 @@
+cat > firewall-setup.sh << 'EOF'
+#!/bin/bash
+# Zone-Based Firewall Configuration
+# Machine: Ubuntu-Firewall
+
+echo "===== Installing firewalld ====="
+sudo apt-get install firewalld -y
+sudo systemctl enable firewalld
+sudo systemctl start firewalld
+sudo systemctl status firewalld --no-pager
+
+echo "===== Creating client zone ====="
+sudo firewall-cmd --new-zone=client --permanent
+
+echo "===== Assigning NICs ====="
+sudo firewall-cmd --zone=public --change-interface=ens33 --permanent
+sudo firewall-cmd --zone=client --change-interface=ens36 --permanent
+sudo firewall-cmd --reload
+
+echo "===== Public Zone - Adding Services ====="
+sudo firewall-cmd --zone=public --add-service=http --permanent
+sudo firewall-cmd --zone=public --add-service=ssh --permanent
+sudo firewall-cmd --zone=public --add-service=dhcp --permanent
+sudo firewall-cmd --reload
+
+echo "===== Public Zone - Adding Source IP ====="
+sudo firewall-cmd --zone=public --add-source=192.168.37.10/24 --permanent
+sudo firewall-cmd --reload
+
+echo "===== Client Zone - Adding FTP ====="
+sudo firewall-cmd --zone=client --add-service=ftp --permanent
+sudo firewall-cmd --reload
+
+echo "===== Client Zone - Adding Source IP ====="
+sudo firewall-cmd --zone=client --add-source=192.168.30.10/24 --permanent
+sudo firewall-cmd --reload
+
+echo "===== Verification ====="
+sudo firewall-cmd --zone=public --list-all
+sudo firewall-cmd --zone=client --list-all
+EOF
+
