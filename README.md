@@ -175,7 +175,7 @@ cryptsetup luksOpen /dev/sdb1 crypt
 
 ## License
 
-This guide is provided for educational purposes as part of Advanced Linux System Administration Course - Sprint 4: Hardening Linux Systems.
+This guide is provided for educational purposes as part of Advanced Linux System Administration- Hardening Linux Systems.
 
 ---
 
